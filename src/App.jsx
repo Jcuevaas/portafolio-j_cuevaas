@@ -2,21 +2,60 @@ import "./App.css";
 import { useState } from "react";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import auth from "./auth";
+import { FaGithub, FaLinkedin } from "react-icons/fa";
+import { db } from "./auth";
+import { useEffect } from "react";
+
+import {
+  collection,
+  getDocs,
+addDoc,
+deleteDoc,
+doc,
+updateDoc
+} from "firebase/firestore";
 
 function App() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [logged, setLogged] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [brand, setBrand] = useState("");
+const [model, setModel] = useState("");
+const [year, setYear] = useState("");
+const [price, setPrice] = useState("");
+const [image, setImage] = useState("");
+const [editingId, setEditingId] = useState(null);
+const [search, setSearch] = useState("");
+const [category, setCategory] = useState("Todos");
+const [selectedCar, setSelectedCar] = useState(null);
+const [featuredCar, setFeaturedCar] = useState(null);
+const [darkMode, setDarkMode] = useState(true);
+const [repos, setRepos] = useState([]);
+const totalCars = projects.length;
+const soldCars = projects.filter(
+  (project) => project.sold
+  
+).length;
+const totalInventoryValue = projects.reduce(
+  (total, project) =>
+    total + Number(project.price || 0),
+  0
+);
 
   const login = async () => {
 
     try {
 
       await signInWithEmailAndPassword(auth, email, password);
+console.log("ANTES DE LOAD");
 
-      setLogged(true);
+await loadProjects();
 
+console.log("DESPUES DE LOAD");
+
+setLogged(true);
     } catch (error) {
 
       alert(error.message);
@@ -24,7 +63,107 @@ function App() {
     }
 
   };
+  const loadProjects = async () => {
 
+  console.log("LOAD PROJECTS FUNCIONA");
+
+  const querySnapshot = await getDocs(
+    collection(db, "cars")
+  );
+
+  const data = [];
+
+  querySnapshot.forEach((doc) => {
+
+    data.push({
+      id: doc.id,
+      ...doc.data()
+    });
+
+  });
+
+
+  setProjects(data);
+  console.log(querySnapshot.size);
+  console.log(data);
+  if (data.length > 0) {
+  setFeaturedCar(data[0]);
+}
+
+};
+const loadGithubRepos = async () => {
+
+  const response = await fetch(
+    "https://api.github.com/users/Jcuevaas/repos"
+  );
+
+  const data = await response.json();
+
+  setRepos(data);
+
+};
+
+const addCar = async () => {
+
+  await addDoc(collection(db, "cars"), {
+
+    brand,
+    model,
+    year,
+    price,
+    image
+
+  });
+
+  loadProjects();
+  
+};
+const updateCar = async () => {
+
+  await updateDoc(doc(db, "cars", editingId), {
+
+    brand,
+    model,
+    year,
+    price,
+    image
+
+  });
+
+  setEditingId(null);
+
+  loadProjects();
+
+};
+const toggleFavorite = async (project) => {
+
+  await updateDoc(doc(db, "cars", project.id), {
+
+    favorite: !project.favorite
+
+  });
+
+  loadProjects();
+
+};
+const toggleSold = async (project) => {
+
+  await updateDoc(doc(db, "cars", project.id), {
+
+    sold: !project.sold
+
+  });
+
+  loadProjects();
+
+};
+const deleteCar = async (id) => {
+
+  await deleteDoc(doc(db, "cars", id));
+
+  loadProjects();
+
+};
   const logout = async () => {
 
     await signOut(auth);
@@ -32,91 +171,452 @@ function App() {
     setLogged(false);
 
   };
+  useEffect(() => {
+
+  loadGithubRepos();
+
+}, []);
 
   if (logged) {
 
     return (
 
-      <div className="container">
+      <div className={darkMode ? "container dark" : "container"}>
 
         <div className="hero">
 
           <>
   <nav className="navbar">
 
-    <h2>José.dev</h2>
+    <h2>Midnight Motors</h2>
 
-    <ul>
-      <li>Inicio</li>
-      <li>Skills</li>
-      <li>Proyectos</li>
-    </ul>
+   <ul>
+  <li>Inicio</li>
+  <li>Inventario</li>
+  <li>Estadísticas</li>
+  <li>GitHub</li>
+  <li>Admin</li>
+
+  <li>
+  <button
+    className="theme-btn"
+    onClick={() => setDarkMode(!darkMode)}
+  >
+    {darkMode ? "☀️" : "🌙"}
+  </button>
+</li>
+
+<li>
+    <a
+      href="https://github.com/Jcuevaas"
+      target="_blank"
+    >
+      <FaGithub />
+    </a>
+  </li>
+
+<li>
+  <a
+    href="https://linkedin.com/"
+    target="_blank"
+  >
+    <FaLinkedin />
+  </a>
+</li>
+</ul>
 
   </nav>
+  <div className="hero">
 
-  <div className="container">
+  <img
+    src="https://i.imgur.com/HeIi0wU.png"
+    alt="profile"
+    className="profile"
+  />
 
-    <div className="hero">
+  <h1 className="logo-title">
+    Midnight Motors
+  </h1>
+
+  <h2>Concesionario Premium</h2>
+
+  <p>
+    Vehículos deportivos, clásicos y de alto rendimiento.
+    Encuentra el auto perfecto para dominar la carretera.
+  </p>
+
+  <div className="hero-buttons">
+
+    <button className="explore-btn">
+      Explorar Catálogo
+    </button>
+
+    <button className="contact-btn">
+      Contactar
+    </button>
+
+  </div>
+
+  <div className="skills">
+
+    <h3>Marcas Disponibles</h3>
+
+    <div className="skills-grid">
+
+      <div className="skill-card">Toyota</div>
+      <div className="skill-card">Mazda</div>
+      <div className="skill-card">Nissan</div>
+      <div className="skill-card">BMW</div>
+
+    </div>
+
+  </div>
+ <div className="dashboard">
+
+  {featuredCar && (
+    <div className="featured-car">
 
       <img
-        src="https://i.imgur.com/HeIi0wU.png"
-        alt="profile"
-        className="profile"
+        src={featuredCar.image}
+        alt="featured"
       />
 
-      <h1>José Cuevas</h1>
+      <div className="featured-info">
 
-      <h2>Ingeniería en Electrónica</h2>
+        <h2>🔥 Vehículo Destacado</h2>
 
-      <p>
-        Desarrollador web y apasionado por tecnología,
-        automatización y proyectos electrónicos.
-      </p>
+        <h3>
+          {featuredCar.brand} {featuredCar.model}
+        </h3>
 
-      <div className="skills">
+        <p>
+          Año: {featuredCar.year}
+        </p>
 
-        <h3>Habilidades</h3>
-
-        <div className="skills-grid">
-
-          <div className="skill-card">React</div>
-          <div className="skill-card">Firebase</div>
-          <div className="skill-card">Arduino</div>
-          <div className="skill-card">Python</div>
-
-        </div>
+        <h2>
+          Q {featuredCar.price}
+        </h2>
 
       </div>
 
-      <div className="projects">
+    </div>
+  )}
 
-        <h2>Proyectos</h2>
+  <div className="dashboard-card">
+    <h2>{totalCars}</h2>
+    <p>Vehículos</p>
+  </div>
 
+  <div className="dashboard-card">
+    <h2>{soldCars}</h2>
+    <p>Vendidos</p>
+  </div>
+
+  <div className="dashboard-card">
+    <h2>
+      Q {totalInventoryValue.toLocaleString()}
+    </h2>
+    <p>Valor Inventario</p>
+  </div>
+
+  <div className="dashboard-card">
+    <h2>24/7</h2>
+    <p>Atención</p>
+  </div>
+
+</div>
+<div className="projects">
+
+        <h2>Vehículos Disponibles</h2>
+
+        <input
+  type="text"
+  
+  placeholder="Buscar vehículo..."
+  className="search-input"
+  onChange={(e) => setSearch(e.target.value)}
+/>
+<select
+  className="category-select"
+  onChange={(e) => setCategory(e.target.value)}
+>
+
+  <option>Todos</option>
+  <option>Deportivo</option>
+  <option>SUV</option>
+  <option>Clásico</option>
+  <option>Lujo</option>
+
+</select>
         <div className="project-grid">
 
-          <div className="project-card">
-            <h3>Robot Sigue Líneas</h3>
+         {
+          projects
+.filter((project) => {
 
-            <p>
-              Robot autónomo usando sensores infrarrojos y puente H.
-            </p>
-          </div>
+  const matchesSearch =
 
-          <div className="project-card">
-            <h3>Detector de Fuego</h3>
+    project.brand
+      .toLowerCase()
+      .includes(search.toLowerCase())
 
-            <p>
-              Sistema Arduino con alarma y bomba de agua.
-            </p>
-          </div>
+    ||
+
+    project.model
+      .toLowerCase()
+      .includes(search.toLowerCase());
+
+  const matchesCategory =
+
+    category === "Todos"
+      ? true
+      : project.category === category;
+
+  return matchesSearch && matchesCategory;
+
+})
+.map((project, index) => (
+
+    <div className="project-card" key={index}>
+      <button
+  className="favorite-btn"
+  onClick={() => toggleFavorite(project)}
+>
+  {project.favorite ? "❤️" : "🤍"}
+</button>
+{
+  project.sold && (
+    <span className="sold-badge">
+      VENDIDO
+    </span>
+  )
+}
+      <img
+  src={project.image}
+  alt="car"
+  className="car-image"
+/>
+<h3>
+  {project.brand} {project.model}
+</h3>
+
+<p>
+  Año: {project.year}
+</p>
+
+<span>
+  {project.price}
+</span>
+<button
+  className="details-btn"
+  onClick={() => setSelectedCar(project)}
+>
+  Ver Más
+</button>
+<button
+  className="delete-btn"
+  onClick={() => deleteCar(project.id)}
+>
+  Eliminar
+</button>
+<button
+  className="edit-btn"
+  onClick={() => {
+
+    setBrand(project.brand);
+    setModel(project.model);
+    setYear(project.year);
+    setPrice(project.price);
+    setImage(project.image);
+
+    setEditingId(project.id);
+
+  }}
+>
+  Editar
+</button>
+<button
+  className="sold-btn"
+  onClick={() => toggleSold(project)}
+>
+  {project.sold ? "Disponible" : "Vendido"}
+</button>
+
+    </div>
+
+  ))
+}
 
         </div>
 
       </div>
+{
+  selectedCar && (
+
+    <div className="modal-overlay">
+
+      <div className="modal">
+
+        <img
+          src={selectedCar.image}
+          alt="car"
+          className="modal-image"
+        />
+
+        <h2>
+          {selectedCar.brand} {selectedCar.model}
+        </h2>
+
+        <p>
+          Año: {selectedCar.year}
+        </p>
+
+        <h3>
+          {selectedCar.price}
+        </h3>
+
+        <button
+          className="close-btn"
+          onClick={() => setSelectedCar(null)}
+        >
+          Cerrar
+        </button>
+
+      </div>
+
+    </div>
+
+  )
+}
+<div className="github-section">
+
+  <h2>
+    Historial GitHub
+  </h2>
+
+  <div className="github-grid">
+
+    {
+      repos.slice(0, 6).map((repo) => (
+
+        <div
+          className="github-card"
+          key={repo.id}
+        >
+
+          <h3>
+            {repo.name}
+          </h3>
+
+          <p>
+            ⭐ {repo.stargazers_count}
+          </p>
+
+          <a
+            href={repo.html_url}
+            target="_blank"
+          >
+            Ver Repositorio
+          </a>
+
+        </div>
+
+      ))
+    }
+
+  </div>
+
+</div>
+  
+
+      <div className="admin-panel">
+
+  <h2>Panel Admin</h2>
+
+  <input
+    type="text"
+    placeholder="Marca"
+    onChange={(e) => setBrand(e.target.value)}
+  />
+
+  <input
+    type="text"
+    placeholder="Modelo"
+    onChange={(e) => setModel(e.target.value)}
+  />
+
+  <input
+    type="text"
+    placeholder="Año"
+    onChange={(e) => setYear(e.target.value)}
+  />
+
+  <input
+    type="text"
+    placeholder="Precio"
+    onChange={(e) => setPrice(e.target.value)}
+  />
+
+  <input
+    type="text"
+    placeholder="URL Imagen"
+    onChange={(e) => setImage(e.target.value)}
+  />
+
+ {
+  editingId ? (
+
+    <button onClick={updateCar}>
+      Guardar Cambios
+    </button>
+
+  ) : (
+
+    <button onClick={addCar}>
+      Agregar Carro
+    </button>
+
+  )
+}
+
+      
+
+  
 
       <button onClick={logout}>
         Cerrar Sesión
       </button>
+      <footer className="footer">
+
+  <h2>Midnight Motors</h2>
+
+  <p>
+    Premium Car Dealership Experience
+  </p>
+
+  <div className="footer-icons">
+
+    <a
+      href="https://github.com/"
+      target="_blank"
+    >
+      <FaGithub />
+    </a>
+
+    <a
+      href="https://linkedin.com/"
+      target="_blank"
+    >
+      <FaLinkedin />
+    </a>
+
+  </div>
+
+  <span>
+    © 2026 Midnight Motors
+  </span>
+
+</footer>
 
     </div>
 
